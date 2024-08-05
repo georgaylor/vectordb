@@ -2,7 +2,6 @@ mod utils;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use sahomedb::collection::{Collection, Config};
-use sahomedb::vector::Vector;
 use utils::*;
 
 fn build_collection(path: &str) -> Collection {
