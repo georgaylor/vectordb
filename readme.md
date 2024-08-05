@@ -22,7 +22,7 @@ SahomeDB is very flexible for use cases related with vector search such as using
 
 ⭐ **Flexible schema**: Along with the vectors, you can store additional metadata for each vector. This is useful for storing information about the vectors such as the original text, image URL, or any other data that you want to associate with the vectors.
 
- 🚀 Quickstart with Rust
+# ⚙️ Quickstart with Rust
 
 To get started with SahomeDB in Rust, you need to add `sahomedb` to your `Cargo.toml`.You can do so by running the command below which will add the latest version of SahomeDB to your project.
 
@@ -77,6 +77,44 @@ fn main() {
     println!("{}", data);
 }
 ```
+
+# 🐍 Quickstart with Python
+SahomeDB also provides a Python binding which allows you to add it directly to your project. You can install the Python library of SahomeDB by running the command below:
+
+```bash
+pip install sahomedb
+```
+```python
+from sahomedb.collection import Collection, Config, Record
+from sahomedb.database import Database
+from sahomedb.vector import Vector
+
+
+def main():
+    # Open the database.
+    db = Database("data/example")
+
+    # Create a vector collection.
+    config = Config.create_default()
+    records = Record.many_random(dimension=128, len=100)
+    collection = Collection.build(config, records)
+
+    # Optionally, persist the collection to the database.
+    db.save_collection("my_collection", collection)
+
+    # Search for the nearest neighbors.
+    # Replace with your own query.
+    query = Vector.random(128).to_list()
+    result = collection.search(query, n=5)
+
+    # Print the result.
+    print("Nearest neighbors ID: {}".format(result[0].id))
+
+
+if __name__ == "__main__":
+    main()
+```
+
 
 # 🎯 Benchmarks
 
