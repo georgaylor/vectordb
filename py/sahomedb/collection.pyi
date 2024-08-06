@@ -1,6 +1,6 @@
 # flake8: noqa F821
 
-from typing import Any, List
+from typing import Any, List, Dict
 from sahomedb.vector import Vector
 
 
@@ -101,6 +101,11 @@ class Collection:
         """Returns a record from the collection.
         Args:
         - id (int): Vector ID to fetch.
+        """
+
+    def list(self) -> Dict[int, Record]:
+        """Returns a dictionary of records in the collection
+        in the format of { ID: Record }.
         """
 
     def update(self, id: int, record: Record) -> None:
