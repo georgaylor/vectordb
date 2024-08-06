@@ -1,4 +1,4 @@
-from sahomedb.vector import Vector, VectorID
+from sahomedb.prelude import Vector, VectorID
 
 
 def test_create_vector():
@@ -6,10 +6,12 @@ def test_create_vector():
     vector = Vector(value)
     assert len(vector) == 3
 
+
 def test_generate_random_vector():
     dimension = 128
     vector = Vector.random(dimension)
     assert len(vector) == dimension
+
 
 def test_create_vector_id():
     id = 1
