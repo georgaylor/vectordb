@@ -14,6 +14,11 @@ classifiers = [
     "Topic :: Text Processing :: Indexing",
 ]
 
+[project.urls]
+repository = "https://github.com/Sahomey-Technologies/sahomedb"
+issues = "https://github.com/Sahomey-Technologies/sahomedb/issues"
+changelog = "https://github.com/Sahomey-Technologies/sahomedb/blob/main/docs/changelog.md"
+
 [tool.maturin]
 python-source = "py"
 features = ["pyo3/extension-module"]
