@@ -1,3 +1,32 @@
+# v0.3.0
+
+This release introduces a BREAKING CHANGE to one of the method from the `Database` struct. The `Database::create_collection` method has been removed from the library due to redundancy. The `Database::save_collection` method can be used to create a new collection or update an existing one. This change is made to simplify the API and to make it more consistent with the other methods in the `Database` struct.
+
+### What's Changed
+
+- **BREAKING CHANGE**: Removed the `Database::create_collection` method from the library. To replace this, you can use the code snippet below:
+
+```rs
+// Before: this creates a new empty collection.
+db.create_collection("vectors", None, Some(records))?;
+
+// After: create new or build a collection then save it.
+// let collection = Collection::new(&config)?;
+let collection = Collection::build(&config, &records)?;
+db.save_collection("vectors", &collection)?;
+```
+
+- Added the `Collection::list` method to list all the vector records in the collection.
+- Created a full Python binding for SahomeDB which is available on PyPI. This allows you to use SahomeDB directly from Python. The Python binding is available at https://pypi.org/project/sahomedb.
+
+### Contributors
+
+- @elijahobs
+
+### Full Changelog
+
+https://github.com/Sahomey-Technologies/sahomedb/compare/v0.2.1...v0.3.0
+
 # v0.2.1
 
 ### What's Changed
