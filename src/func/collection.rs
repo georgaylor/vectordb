@@ -33,7 +33,7 @@ impl Config {
     ) -> Result<Self, Error> {
         let distance = Distance::from(distance)?;
 
-        Ok(Self { ef_construction, ef_search, ml, distance: distance })
+        Ok(Self { ef_construction, ef_search, ml, distance })
     }
 
     /// Sets the distance calculation function.
