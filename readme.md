@@ -120,6 +120,7 @@ if __name__ == "__main__":
     print("Nearest neighbors ID: {}".format(result[0].id))
 ```
 
+If you want to learn more about using SahomeDB for real-world applications, you can check out the this Google Colab notebook which demonstrates how to use SahomeDB to build a simple image similarity search engine: [Image Search Engine with SahomeDB](https://colab.research.google.com/drive/1R2tZ0dM3-BoFPzuOdtXHQOUbBHnYukWL?usp=sharing)
 
 # 🎯 Benchmarks
 
