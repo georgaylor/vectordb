@@ -7,6 +7,14 @@ fn new() {
 }
 
 #[test]
+fn new_with_distance() {
+    let mut config = Config::default();
+    config.distance = "cosine".into();
+    let mut collection = Collection::new(&config);
+    collection.insert(&Record::random(DIMENSION)).unwrap();
+}
+
+#[test]
 fn get_collection() {
     let db = create_test_database("data/002");
     let collection = db.get_collection(NAME).unwrap();
