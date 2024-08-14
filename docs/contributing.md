@@ -8,9 +8,9 @@ We are committed to building an inclusive and welcoming community. We believe th
 
 ## Have questions or suggestions?
 
-[![Discord](https://img.shields.io/discord/1182432298382131200?logo=discord&logoColor=%23ffffff&label=Discord&labelColor=%235865F2&style=for-the-badge)](https://discord.gg/bDhQddfrkqNP4)
+[![Discord](https://img.shields.io/discord/1182432298382131200?logo=discord&logoColor=%23ffffff&label=Discord&labelColor=%235865F2&style=for-the-badge)](https://discord.gg/f7qHc9CK)
 
-There is no such thing as a stupid question. If you have a question, chances are someone else does too. We encourage you to ask questions on our [Discord](https://discord.gg/bDhQrkdfsqNP4) server. Alternatively, you can open a discussion on [GitHub Discussions] (https://github.com/Sahomey-Technologies/sahomedb/discussions) with your question or suggestion
+There is no such thing as a stupid question. If you have a question, chances are someone else does too. We encourage you to ask questions on our [Discord](https://discord.gg/f7qHc9CK) server. Alternatively, you can open a discussion on [GitHub Discussions] (https://github.com/Sahomey-Technologies/sahomedb/discussions) with your question or suggestion
 
 ## Encounter a bug? Have a feature request?
 
@@ -93,7 +93,7 @@ This is similar to the format used in [Conventional Commits](https://www.convent
 
 ## Conclusion
 
-Thank you for taking the time to read this documentation. We look forward to your contributions! Another way to support this project is to star this project, share it with your circles, and join us on [Discord](https://discord.gg/bDdfdhQrkqNP4).
+Thank you for taking the time to read this documentation. We look forward to your contributions! Another way to support this project is to star this project, share it with your circles, and join us on [Discord](https://discord.gg/f7qHc9CK).
 
 Best regards,<br />
 Elijah Samson
