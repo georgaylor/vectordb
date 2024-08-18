@@ -77,6 +77,9 @@ pub struct Collection {
     /// The collection configuration object.
     #[pyo3(get)]
     pub config: Config,
+    /// The min/max distance to consider a neighbor.
+    #[pyo3(get)]
+    pub relevancy: f32,
     // Private fields below.
     data: HashMap<VectorID, Metadata>,
     vectors: HashMap<VectorID, Vector>,
@@ -105,9 +108,10 @@ impl Collection {
     #[new]
     pub fn new(config: &Config) -> Self {
         Self {
-            config: config.clone(),
             count: 0,
             dimension: 0,
+            relevancy: -1.0,
+            config: config.clone(),
             data: HashMap::new(),
             vectors: HashMap::new(),
             slots: vec![],
@@ -121,6 +125,15 @@ impl Collection {
         config: &Config,
         records: Vec<Record>,
     ) -> Result<Self, Error> {
+        Self::build(config, &records)
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "build")]
+    fn py_build(
+        config: &Config,
+        records: Vec<Record>,
+    ) -> Result<Collection, Error> {
         Self::build(config, &records)
     }
 
@@ -157,9 +170,18 @@ impl Collection {
 
         // This operation is last because it depends on
         // the updated vectors data.
-        self.insert_to_layers(&id);
+        self.insert_to_layers(&[id]);
 
         Ok(())
+    }
+
+    #[pyo3(name = "insert_many")]
+    fn py_insert_many(
+        &mut self,
+        records: Vec<Record>,
+    ) -> Result<Vec<VectorID>, Error> {
+        let ids = self.insert_many(&records)?;
+        Ok(ids)
     }
 
     /// Deletes a vector record from the collection.
@@ -170,7 +192,7 @@ impl Collection {
             return Err(Error::record_not_found());
         }
 
-        self.delete_from_layers(id);
+        self.delete_from_layers(&[*id]);
 
         // Update the collection data.
         self.vectors.remove(id);
@@ -231,12 +253,12 @@ impl Collection {
         self.validate_dimension(&record.vector)?;
 
         // Remove the old vector from the index layers.
-        self.delete_from_layers(id);
+        self.delete_from_layers(&[*id]);
 
         // Insert the updated vector and data.
         self.vectors.insert(*id, record.vector.clone());
         self.data.insert(*id, record.data.clone());
-        self.insert_to_layers(id);
+        self.insert_to_layers(&[*id]);
 
         Ok(())
     }
@@ -292,7 +314,11 @@ impl Collection {
             SearchResult { id, distance, data }
         };
 
-        Ok(search.iter().map(map_result).take(n).collect())
+        // Get relevant results and truncate the list.
+        let res = search.iter().map(map_result).collect();
+        let mut relevant = self.truncate_irrelevant_result(res);
+        relevant.truncate(n);
+        Ok(relevant)
     }
 
     /// Searches the collection for the true nearest neighbors.
@@ -319,10 +345,12 @@ impl Collection {
 
         // Sort the nearest neighbors by distance.
         nearest.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
-        nearest.truncate(n);
-        Ok(nearest)
-    }
 
+        // Remove irrelevant results and truncate the list.
+        let mut res = self.truncate_irrelevant_result(nearest);
+        res.truncate(n);
+        Ok(res)
+    }
     /// Returns the configured vector dimension of the collection.
     #[getter]
     pub fn dimension(&self) -> usize {
@@ -340,6 +368,13 @@ impl Collection {
 
         self.dimension = dimension;
         Ok(())
+    }
+
+    /// Sets the min/max relevancy for the search results.
+    /// * `relevancy`: Relevancy score.
+    #[setter]
+    pub fn set_relevancy(&mut self, relevancy: f32) {
+        self.relevancy = relevancy;
     }
 
     /// Returns the number of vector records in the collection.
@@ -499,7 +534,57 @@ impl Collection {
             dimension,
             config: config.clone(),
             count: records.len(),
+            relevancy: -1.0,
         })
+    }
+
+    /// Inserts multiple vector records into the collection.
+    /// * `records`: List of vector records to insert.
+    pub fn insert_many(
+        &mut self,
+        records: &[Record],
+    ) -> Result<Vec<VectorID>, Error> {
+        // Make sure the collection is not full after inserting.
+        if self.slots.len() + records.len() >= u32::MAX as usize {
+            return Err(Error::collection_limit());
+        }
+
+        // Sets the collection dimension if it's the first record.
+        if self.vectors.is_empty() && self.dimension == 0 {
+            self.dimension = records[0].vector.len();
+        }
+
+        // Validate the vector dimension against the collection.
+        if records.par_iter().any(|i| i.vector.len() != self.dimension) {
+            let message = format!(
+                "The vector dimension is inconsistent. Expected: {}.",
+                self.dimension
+            );
+
+            return Err(message.into());
+        }
+
+        // Create new vector IDs for the records.
+        let ids: Vec<VectorID> = {
+            let first_id = self.slots.len();
+            let final_id = self.slots.len() + records.len();
+            (first_id..final_id).map(|i| i.into()).collect()
+        };
+
+        // Store the new records vector and data.
+        for (id, record) in ids.iter().zip(records.iter()) {
+            self.vectors.insert(*id, record.vector.clone());
+            self.data.insert(*id, record.data.clone());
+        }
+
+        // Add new vector IDs to the slots.
+        self.slots.extend(ids.clone());
+
+        // Update the collection count.
+        self.count += records.len();
+
+        self.insert_to_layers(&ids);
+        Ok(ids)
     }
 
     /// Validates a vector dimension against the collection's.
@@ -514,9 +599,12 @@ impl Collection {
         }
     }
 
-    /// Inserts a vector ID into the index layers.
-    fn insert_to_layers(&mut self, id: &VectorID) {
-        self.base_layer.push(BaseNode::default());
+    /// Inserts vector IDs into the index layers.
+    fn insert_to_layers(&mut self, ids: &[VectorID]) {
+        // Add new nodes to the base layer.
+        for _ in 0..ids.len() {
+            self.base_layer.push(BaseNode::default());
+        }
 
         let base_layer = self
             .base_layer
@@ -529,6 +617,7 @@ impl Collection {
             false => LayerID(self.upper_layers.len()),
         };
 
+        // Create a new index construction state.
         let state = IndexConstruction {
             base_layer: base_layer.as_slice(),
             search_pool: SearchPool::new(self.vectors.len()),
@@ -537,21 +626,25 @@ impl Collection {
             config: &self.config,
         };
 
-        // Insert new vector into the contructor.
-        state.insert(id, &top_layer, &self.upper_layers);
+        // Insert all vectors into the state.
+        for id in ids {
+            state.insert(id, &top_layer, &self.upper_layers);
+        }
 
-        // Update the base layer with the new state.
+        // Update base layer using the new state.
         let iter = state.base_layer.into_par_iter();
         self.base_layer = iter.map(|node| *node.read()).collect();
     }
 
-    /// Removes a vector ID from all index layers.
-    fn delete_from_layers(&mut self, id: &VectorID) {
-        // Remove the vector from the base layer.
-        let base_node = &mut self.base_layer[id.0 as usize];
-        let index = base_node.par_iter().position_first(|x| *x == *id);
-        if let Some(index) = index {
-            base_node.set(index, &INVALID);
+    /// Removes vector IDs from all index layers.
+    fn delete_from_layers(&mut self, ids: &[VectorID]) {
+        // Remove the vectors from the base layer.
+        for id in ids {
+            let base_node = &mut self.base_layer[id.0 as usize];
+            let index = base_node.par_iter().position_first(|x| *x == *id);
+            if let Some(index) = index {
+                base_node.set(index, &INVALID);
+            }
         }
 
         // Remove the vector from the upper layers.
@@ -561,13 +654,42 @@ impl Collection {
                 false => break,
             };
 
-            let node = &mut upper_layer[id.0 as usize];
-            let index = node.0.par_iter().position_first(|x| *x == *id);
-
-            if let Some(index) = index {
-                node.set(index, &INVALID);
+            for id in ids {
+                let node = &mut upper_layer[id.0 as usize];
+                let index = node.0.par_iter().position_first(|x| *x == *id);
+                if let Some(index) = index {
+                    node.set(index, &INVALID);
+                }
             }
         }
+    }
+
+    /// Truncates the search result based on the relevancy score.
+    fn truncate_irrelevant_result(
+        &self,
+        result: Vec<SearchResult>,
+    ) -> Vec<SearchResult> {
+        // Early return if the relevancy score is not set.
+        if self.relevancy == -1.0 {
+            return result;
+        }
+
+        // For Euclidean distance, relevant results are those
+        // smaller than the relevancy score with best distance of 0.0.
+        if self.config.distance == Distance::Euclidean {
+            return result
+                .into_par_iter()
+                .filter(|r| r.distance <= self.relevancy)
+                .collect();
+        }
+
+        // For other distance metrics, like cosine similarity
+        // and dot product, the relevant results are above
+        // the relevancy score.
+        result
+            .into_par_iter()
+            .filter(|r| r.distance >= self.relevancy)
+            .collect()
     }
 }
 

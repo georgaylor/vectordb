@@ -54,6 +54,20 @@ fn insert_data_type_object() {
 }
 
 #[test]
+fn insert_many() {
+    let mut collection = create_collection();
+
+    // Create records to insert.
+    let new_records = Record::many_random(DIMENSION, LEN);
+    let ids = collection.insert_many(&new_records).unwrap();
+
+    // Assert the new records are in the collection.
+    assert_eq!(collection.len(), 2 * LEN);
+    assert_eq!(ids.len(), LEN);
+    assert_eq!(ids[0], VectorID(LEN as u32));
+}
+
+#[test]
 fn delete() {
     let mut collection = create_collection();
 
@@ -81,7 +95,10 @@ fn search() {
     let len = 1000;
     let config = Config::default();
     let records = Record::many_random(DIMENSION, len);
-    let collection = Collection::build(&config, &records).unwrap();
+
+    // Build the collection with a minimum relevancy.
+    let mut collection = Collection::build(&config, &records).unwrap();
+    collection.relevancy = 4.5;
 
     // Generate a random query vector.
     let query = Vector::random(DIMENSION);
@@ -90,14 +107,18 @@ fn search() {
     let result = collection.search(&query, 5).unwrap();
     let truth = collection.true_search(&query, 10).unwrap();
 
-    // Collect the distances from the true nearest neighbors.
-    let distances: Vec<f32> = truth.par_iter().map(|i| i.distance).collect();
-
     assert_eq!(result.len(), 5);
 
     // The search is not always exact, so we check if
     // the distance is within the true distances.
+    let distances: Vec<f32> = truth.par_iter().map(|i| i.distance).collect();
     assert_eq!(distances.contains(&result[0].distance), true);
+
+    // Search results should be within the relevancy.
+    let last_result = result.last().unwrap();
+    let last_truth = truth.last().unwrap();
+    assert!(last_result.distance <= collection.relevancy);
+    assert!(last_truth.distance <= collection.relevancy);
 }
 
 #[test]

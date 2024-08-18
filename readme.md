@@ -173,7 +173,7 @@ If you have deep experience in the space but don't have the free time to contrib
 
 This project is still in the early stages of development. We are actively working on it and we expect the API and functionality to change. We do not recommend using this in production yet.
 
-If you are interested about the project in any way, please join us on [Discord](https://discord.gg/bDhQdfgfrkqNP4). Help us grow the community and make SahomeDB better 😁
+If you are interested about the project in any way, please join us on [Discord](https://discord.gg/pU2HmnCY). Help us grow the community and make SahomeDB better 😁
 
 
 ## Code of Conduct

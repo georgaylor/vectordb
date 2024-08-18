@@ -89,6 +89,15 @@ def test_insert_record_invalid_dimension():
     assert collection.len() == LEN
 
 
+def test_insert_many_records():
+    collection = create_test_collection()
+    records = Record.many_random(dimension=DIMENSION, len=LEN)
+    collection.insert_many(records)
+
+    assert collection.len() == 2 * LEN
+    assert all(collection.contains(VectorID(i)) for i in range(LEN, 2 * LEN))
+
+    
 def test_delete_record():
     collection = create_test_collection()
 
@@ -122,6 +131,8 @@ def test_update_record():
 
 def test_search_record():
     collection = create_test_collection()
+    collection.relevancy = 4.5
+
     vector = Vector.random(dimension=DIMENSION)
     n = 10
 
@@ -135,6 +146,11 @@ def test_search_record():
     # Make sure the first result of the approximate search
     # is somewhere in the true results.
     assert results[0].id in [true.id for true in true_results]
+
+
+    # Check if the result distances are within the relevancy.
+    assert results[-1].distance <= collection.relevancy
+    assert true_results[-1].distance <= collection.relevancy
 
 
 def test_set_dimension():
