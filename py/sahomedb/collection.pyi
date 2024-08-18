@@ -100,6 +100,7 @@ class Collection:
         """Build a collection from the records.
         This is an alias of from_records method and shared
         the same implementation.
+        
         Args:
         - config: Collection configuration.
         - records: Records used to build the collection.
@@ -114,6 +115,7 @@ class Collection:
     
     def insert_many(self, records: List[Record]) -> List[VectorID]:
         """Inserts multiple records into the collection.
+        
         Args:
         - records: Records to insert.
         """
